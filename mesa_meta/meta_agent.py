@@ -101,7 +101,10 @@ Notes:
 
 """
 
-from mesa_meta.policy import Policy
+try:
+    from .policy import Policy
+except ImportError:  # Support running as a script from within mesa_meta/
+    from policy import Policy
 from typing import Any, Iterable
 
 class Agent:
@@ -128,10 +131,28 @@ class MetaAgent:
     A group governed by a Policy. Agents join/leave through a decision pipeline.
     Membership stored in sparse matrix (not a set).
     """
-    def __init__(self, policy: Policy, hypergraph, meta_agent_id):
+    def __init__(self, policy: Policy, hypergraph, meta_agent_id, join_approval_func=None, leave_approval_func=None):
         self.policy = policy
         self.hypergraph = hypergraph
         self.meta_agent_id = meta_agent_id
+        self.attributes = {}  # Store meta-agent attributes
+        self.join_approval_func = join_approval_func
+        self.leave_approval_func = leave_approval_func
+    
+    def add_attribute(self, meta_attributes: dict) -> None:
+        """
+        Add attributes to this meta-agent from a dictionary.
+        
+        Args:
+            meta_attributes: Dictionary of {key: value} pairs to set as attributes
+        
+        Example:
+            meta_agent.add_attribute({"rank": 5, "tier": "elite"})
+        """
+        if meta_attributes is not None:
+            for key, value in meta_attributes.items():
+                setattr(self, key, value)
+                self.attributes[key] = value
     
     @staticmethod
     def create_meta_agent(policy: Policy, hypergraph, meta_agent_id, agents: Iterable[Agent] = None):
@@ -148,26 +169,36 @@ class MetaAgent:
             MetaAgent instance with agents added (if provided)
         """
         meta = MetaAgent(policy, hypergraph, meta_agent_id)
-        if agents:
-            for agent in agents:
-                meta.add(agent)
-        if agents:
-            for agent in agents:
-                meta.add(agent)
         return meta    
     
     def assess_join(self, agent: Agent) -> bool:
         """
-        Override this to implement approval logic for join_rule="approval".
-        Return True to approve, False to reject.
+        Override this to implement approval logic for join_rule="approval",
+        or use the function passed in at initialization or in the policy.
         """
+        # First check if function was passed directly to MetaAgent
+        if hasattr(self, 'join_approval_func') and self.join_approval_func is not None:
+            return self.join_approval_func(agent)
+            
+        # Fallback to policy
+        if hasattr(self.policy, 'join_approval_func') and self.policy.join_approval_func is not None:
+            return self.policy.join_approval_func(agent)
+            
         return True
     
     def assess_leave(self, agent: Agent) -> bool:
         """
-        Override this to implement approval logic for leave_rule="approval".
-        Return True to approve, False to reject.
+        Override this to implement approval logic for leave_rule="approval",
+        or use the function passed in at initialization or in the policy.
         """
+        # First check if function was passed directly to MetaAgent
+        if hasattr(self, 'leave_approval_func') and self.leave_approval_func is not None:
+            return self.leave_approval_func(agent)
+            
+        # Fallback to policy
+        if hasattr(self.policy, 'leave_approval_func') and self.policy.leave_approval_func is not None:
+            return self.policy.leave_approval_func(agent)
+            
         return True
     
     def add(self, agent: Agent) -> bool:
@@ -175,9 +206,10 @@ class MetaAgent:
         Attempt to add agent to this group.
         
         Pipeline:
-            1. Policy check (join_rule)
-            2. Exclusivity check
-            3. Add to matrix
+            1. Agent check (wants_to_join)
+            2. Policy check (join_rule)
+            3. Exclusivity check
+            4. Add to matrix
         
         Args:
             agent: Agent to add
@@ -185,6 +217,11 @@ class MetaAgent:
         Returns:
             True if added, False if rejected
         """
+        # Gate 0: Check if agent actually wants to join
+        if hasattr(agent, "wants_to_join"):
+            if not agent.wants_to_join(self):
+                return False
+                
         # Gate 1: Policy check (join_rule)
         if self.policy.join_rule == "approval":
             if not self.assess_join(agent):
@@ -217,14 +254,9 @@ class MetaAgent:
             True if removed, False if rejected
         """
         # Gate 1: Policy check (leave_rule)
-        
-        # Gate 2: Remove from hypergraph
-        self.hypergraph.remove_member(agent, self.meta_agent_id)
-        return True
         if self.policy.leave_rule == "approval":
             if not self.assess_leave(agent):
                 return False  # Approval rejected
-        
         # Gate 2: Remove from hypergraph
         self.hypergraph.remove_member(agent, self.meta_agent_id)
         return True

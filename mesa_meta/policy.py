@@ -70,29 +70,20 @@ Note:
 
 
 class Policy:
-    def __init__(self,join_rule:str,leave_rule:str,exclusivity:str,authority:str,join_approval_func=None,leave_approval_func=None):
+    def __init__(self,join_rule:str,leave_rule:str,exclusivity:str,authority:str):
         self.join_rule=join_rule
         self.leave_rule=leave_rule
         self.exclusivity=exclusivity
         self.authority=authority
-        self.join_approval_func=join_approval_func
-        self.leave_approval_func=leave_approval_func
 
         if join_rule not in ["free", "approval"]:
             """If the join rule is approval then approcal fucntion is required """
             raise ValueError(f"Invalid join_rule: {join_rule}")
-        elif self.join_rule == "approval" and join_approval_func is None:
-            raise ValueError("join_rule='approval' requires join_approval function")
-
-
 
         if leave_rule not in ["free", "approval"]:
             """if the leave rule is approval then it need to have a approval fucntion""" 
             raise ValueError(f"Invalid leave_rule: {leave_rule}")
-        elif self.leave_rule == "approval" and leave_approval_func is None:
-            raise ValueError("leave_rule='approval' requires leave_approval_func")
         
-
         if exclusivity not in ["multiple", "exclusive"]:
             """agent can be part of only single """
             raise ValueError(f"Invalid exclusivity: {exclusivity}")       
