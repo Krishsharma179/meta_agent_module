@@ -29,7 +29,19 @@ This is a starting point for more advanced agent-based modeling and group dynami
 5. Membership is updated in the sparse matrix.
 6. Both agents and meta-agents can react to membership changes (customizable).
 
-incidence matrix:
+# facade api :
+get_members(): Returns a list of all members.
+get_members_by_role("some_role"): Returns members with a specific role.
+get_active_members(): Returns all members in the "active" state.
+get_dormant_members(): Returns all members in the "dormant" state.
+get_leaders(): Shortcut to get members with the "leader" role.
+
+# State Control
+activate(entity): Sets a member's state to "active".
+deactivate(entity): Sets a member's state to "dormant".
+
+
+# incidence matrix:
 ![alt text](image.png)
 
 This is the incidence matrix when every agents want to join the school and gym
@@ -38,3 +50,23 @@ and cleared the criteria
 ![alt text](image-1.png)
 
 This is the incidence martix when the agent didnt wanted to join the school but wanted to join the gym
+
+![alt text](image-3.png)
+This is the incidence matrix where 
+meta agent teacher is a part of school 
+
+Before I was thinking to apply rules in the joining of meta_agent too then I thought In real life org under org exists because of the willness of the org 
+
+
+
+# Bidirectional Hooks
+
+Override these methods to make agents and groups react to membership changes.
+
+### Agent Hooks
+- `on_join(self, meta_agent)`: Called on the agent after it joins a group.
+- `on_leave(self, meta_agent)`: Called on the agent after it leaves a group.
+
+### Group (MetaAgent) Hooks
+- `on_member_join(self, entity)`: Called on the group after a new member joins.
+- `on_member_leave(self, entity)`: Called on the group after a member leaves.
