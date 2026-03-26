@@ -30,8 +30,17 @@ class Agent_std(Agent):
             return True
         else:
             return False
-        
-        
+
+
+def join_approval(agent):
+    return (agent.iq_level >= 120 and 
+                agent.past_qualification == "graduate" and 
+                agent.entrance_marks >= 120)
+
+def leave_approval(agent):
+    return True
+
+
 class College(MetaAgent):
     """MetaAgent for college with approval functions."""
     
@@ -42,22 +51,11 @@ class College(MetaAgent):
         - past_qualification == "graduate"
         - entrance_marks >= 120
         """
-        return (agent.iq_level >= 120 and 
-                agent.past_qualification == "graduate" and 
-                agent.entrance_marks >= 120)
+        return join_approval(agent)
     
     def assess_leave(self,agent):
         """Always approve leaving"""
-        return True
-
-def join_approval(agent):
-    return (agent.iq_level >= 120 and 
-                agent.past_qualification == "graduate" and 
-                agent.entrance_marks >= 120)
-
-def leave_approval(agent):
-    return True
-
+        return leave_approval(agent)
 
 
 class Gym(MetaAgent):
@@ -85,13 +83,13 @@ class Model_institute(Model):
             exclusivity="multiple"
         )
 
-        students = MetaAgent(policy, self.hypergraph, meta_agent_id=0, join_approval_func=join_approval, leave_approval_func=leave_approval)
+        college = MetaAgent(policy, self.hypergraph, meta_agent_id=0, join_approval_func=join_approval, leave_approval_func=leave_approval)
         
         attribute = {"rank": 3}
-        students.add_attribute(attribute)
+        college.add_attribute(attribute)
         
         for agent in self.agen:
-            students.add(agent)
+            college.add(agent,role="students")
         
         # Create Gym meta-agent with free join/leave
         gym_policy = Policy(
@@ -106,14 +104,25 @@ class Model_institute(Model):
         
         # Add agents to gym (all can join freely)
         for agent in self.agen:
-            gym.add(agent)
+            gym.add(agent,role="trainer")
+
+        # === ADD HIERARCHY: Teachers Meta-Agent ===
+        teachers_policy = Policy("free", "free", "multiple", "none")
+        teachers = MetaAgent(teachers_policy, self.hypergraph, meta_agent_id=2)
+        
+        # Add the teachers group itself as a member of the college
+        college.add(teachers, role="staff")
+        # ==========================================
         
         # Print incidence matrix
         print("\n" + "="*50)
         print("INCIDENCE MATRIX")
         print("="*50)
-        print(f"Rows: Agents, Columns: Meta-agents (0=College, 1=Gym)")
+        print(f"Rows: Agents/Meta-Agents, Columns: Meta-agents (0=College, 1=Gym, 2=Teachers)")
         print(self.hypergraph.matrix.toarray())
+        print("\n--- Matrix Rows ---")
+        for i, entity in self.hypergraph.row_to_entity.items():
+            print(f"Row {i}: {entity} ({self.hypergraph.entity_type[entity]})")
         print("="*50 + "\n")
         
 model=Model_institute(3)

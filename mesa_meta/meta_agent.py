@@ -124,12 +124,22 @@ class Agent:
     
     def __hash__(self):
         return hash(self.unique_id)
+    
+    def on_join(self, meta_agent):
+        """Called when agent successfully joins a meta-agent. Override to customize."""
+        pass
+    
+    def on_leave(self, meta_agent):
+        """Called when agent successfully leaves a meta-agent. Override to customize."""
+        pass
 
 
 class MetaAgent:
     """
-    A group governed by a Policy. Agents join/leave through a decision pipeline.
+    A group governed by a Policy. Agents/MetaAgents join/leave through a decision pipeline.
     Membership stored in sparse matrix (not a set).
+    
+    Now supports hierarchical nesting: MetaAgent can contain other MetaAgents.
     """
     def __init__(self, policy: Policy, hypergraph, meta_agent_id, join_approval_func=None, leave_approval_func=None):
         self.policy = policy
@@ -138,6 +148,20 @@ class MetaAgent:
         self.attributes = {}  # Store meta-agent attributes
         self.join_approval_func = join_approval_func
         self.leave_approval_func = leave_approval_func
+        
+        # Eagerly register this meta-agent's column in the hypergraph
+        self.hypergraph.register_meta_agent_column(self.meta_agent_id)
+        
+        # This meta-agent is NOT registered as an entity (row) yet.
+        # It will only get a row if it is added as a member to another meta-agent.
+        
+        # Hierarchical support
+        self.parent = None  # Parent meta-agent (if this is nested)
+        self.children = []  # Child meta-agents (if this contains other meta-agents)
+        
+        # Note: This meta-agent is NOT registered in hypergraph yet
+        # It only gets a row when it's added as member of another meta-agent
+        # (See add() method for registration logic)
     
     def add_attribute(self, meta_attributes: dict) -> None:
         """
@@ -169,7 +193,15 @@ class MetaAgent:
             MetaAgent instance with agents added (if provided)
         """
         meta = MetaAgent(policy, hypergraph, meta_agent_id)
-        return meta    
+        return meta
+    
+    def on_member_join(self, agent):
+        """Called when an agent successfully joins this meta-agent. Override to customize."""
+        pass
+    
+    def on_member_leave(self, agent):
+        """Called when an agent successfully leaves this meta-agent. Override to customize."""
+        pass    
     
     def assess_join(self, agent: Agent) -> bool:
         """
@@ -201,72 +233,162 @@ class MetaAgent:
             
         return True
     
-    def add(self, agent: Agent) -> bool:
+    def add(self, entity, role: str = "member") -> bool:
         """
-        Attempt to add agent to this group.
+        Attempt to add entity (Agent or MetaAgent) to this group with a specific role.
         
         Pipeline:
-            1. Agent check (wants_to_join)
+            1. Entity check (wants_to_join if Agent)
             2. Policy check (join_rule)
             3. Exclusivity check
-            4. Add to matrix
+            4. Register meta-agent as row if needed
+            5. Add to matrix with role
+            6. Set parent if entity is MetaAgent
         
         Args:
-            agent: Agent to add
+            entity: Agent or MetaAgent to add
+            role: Role of entity in this group (default: "member")
         
         Returns:
             True if added, False if rejected
         """
-        # Gate 0: Check if agent actually wants to join
-        if hasattr(agent, "wants_to_join"):
-            if not agent.wants_to_join(self):
+        # Determine entity type
+        is_meta_agent = isinstance(entity, MetaAgent)
+        entity_type = "meta-agent" if is_meta_agent else "agent"
+        
+        # Gate 0: Check if entity actually wants to join (only for agents)
+        if not is_meta_agent and hasattr(entity, "wants_to_join"):
+            if not entity.wants_to_join(self):
                 return False
                 
-        # Gate 1: Policy check (join_rule)
-        if self.policy.join_rule == "approval":
-            if not self.assess_join(agent):
+        # Gate 1: Policy check (join_rule) - approval logic only applies to agents
+        if not is_meta_agent and self.policy.join_rule == "approval":
+            if not self.assess_join(entity):
                 return False  # Approval rejected
         
         # Gate 2: Exclusivity check
         if self.policy.exclusivity == "exclusive":
-            existing_memberships = self.hypergraph.get_memberships(agent)
+            existing_memberships = self.hypergraph.get_memberships(entity)
             if len(existing_memberships) > 0:
-                return False  # Agent already in another exclusive group
+                return False  # Entity already in another exclusive group
         
-        # Gate 3: Add to hypergraph
-        self.hypergraph.add_member(agent, self.meta_agent_id)
+        # Gate 3: Register meta-agent as row only when it becomes a member
+        # (Agents are registered automatically when first added)
+        if is_meta_agent and entity not in self.hypergraph.entity_to_row:
+            self.hypergraph.register_entity(entity, entity_type="meta-agent")
+        
+        # Gate 4: Add to hypergraph WITH ROLE
+        self.hypergraph.add_member(entity, self.meta_agent_id, entity_type=entity_type, role=role)
+        
+        # Gate 5: If entity is a MetaAgent, set parent and track as child
+        if is_meta_agent:
+            entity.parent = self
+            self.children.append(entity)
+        
+        # Trigger callbacks for bidirectional influence
+        if not is_meta_agent and hasattr(entity, "on_join"):
+            entity.on_join(self)
+        self.on_member_join(entity)
+        
         return True        
 
             
     
-    def remove(self, agent: Agent) -> bool:
+    def remove(self, entity) -> bool:
         """
-        Attempt to remove agent from this group.
+        Attempt to remove entity (Agent or MetaAgent) from this group.
         
         Pipeline:
             1. Policy check (leave_rule)
             2. Remove from matrix
+            3. Clear parent if entity is MetaAgent
         
         Args:
-            agent: Agent to remove
+            entity: Agent or MetaAgent to remove
         
         Returns:
             True if removed, False if rejected
         """
+        is_meta_agent = isinstance(entity, MetaAgent)
+        
         # Gate 1: Policy check (leave_rule)
         if self.policy.leave_rule == "approval":
-            if not self.assess_leave(agent):
+            if not self.assess_leave(entity):
                 return False  # Approval rejected
+        
         # Gate 2: Remove from hypergraph
-        self.hypergraph.remove_member(agent, self.meta_agent_id)
+        self.hypergraph.remove_member(entity, self.meta_agent_id)
+        
+        # Gate 3: If entity is a MetaAgent, clear parent and remove from children
+        if is_meta_agent:
+            entity.parent = None
+            if entity in self.children:
+                self.children.remove(entity)
+        
+        # Trigger callbacks for bidirectional influence
+        if not is_meta_agent and hasattr(entity, "on_leave"):
+            entity.on_leave(self)
+        self.on_member_leave(entity)
+        
         return True
         
     @property
     def members(self):
         """
-        Return list of agents currently in this group.
+        Return list of all entities (agents and meta-agents) currently in this group.
         Reads from sparse matrix, not a set.
         """
-        return self.hypergraph.get_members(self.meta_agent_id)    
+        return self.hypergraph.get_members(self.meta_agent_id)
     
+    def get_agents(self):
+        """Return only agents (not meta-agents) in this group."""
+        return self.hypergraph.get_agents(self.meta_agent_id)
     
+    def get_leaders(self) -> list:
+        """Return all entities with 'leader' role in this group."""
+        return self.hypergraph.get_members(self.meta_agent_id, role="leader")
+    
+    def get_members_by_role(self, role: str) -> list:
+        """Return all entities with specific role in this group."""
+        return self.hypergraph.get_members(self.meta_agent_id, role=role)
+
+    def activate(self, entity: Any) -> None:
+        """Set an entity's state to 'active' in this group."""
+        self.hypergraph.set_member_state(entity, self.meta_agent_id, "active")
+        
+    def deactivate(self, entity: Any) -> None:
+        """Set an entity's state to 'dormant' in this group."""
+        self.hypergraph.set_member_state(entity, self.meta_agent_id, "dormant")
+        
+    def get_active_members(self) -> list:
+        """Return all active members of this group."""
+        return self.hypergraph.get_members(self.meta_agent_id, state="active")
+        
+    def get_dormant_members(self) -> list:
+        """Return all dormant members of this group."""
+        return self.hypergraph.get_members(self.meta_agent_id, state="dormant")
+
+    def get_meta_agents(self):
+        """Return only meta-agents (not agents) directly in this group."""
+        return self.hypergraph.get_meta_agents(self.meta_agent_id)
+    
+    def get_all_members_recursive(self):
+        """
+        Return all agents recursively, including agents nested in child meta-agents.
+        
+        Example:
+            company.get_all_members_recursive() returns all soldiers in all platoons
+        
+        Returns:
+            List of all agents at any depth in the hierarchy
+        """
+        all_agents = []
+        
+        # Add direct agents
+        all_agents.extend(self.get_agents())
+        
+        # Add agents from child meta-agents (recursive)
+        for child_meta in self.get_meta_agents():
+            all_agents.extend(child_meta.get_all_members_recursive())
+        
+        return all_agents
