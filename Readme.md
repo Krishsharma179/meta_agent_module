@@ -21,6 +21,7 @@ This is a starting point for more advanced agent-based modeling and group dynami
 
 ---
 
+
 **Lifecycle:**
 
 **Entity Creation:**
@@ -28,48 +29,110 @@ This is a starting point for more advanced agent-based modeling and group dynami
 2. `Meta-agents` (groups) are created to represent collections or hierarchical structures.
 
 **Membership Decision:**
-3. Entities (both `agents` and `meta-agents`) evaluate potential membership based on:
+ Entities (both `agents` and `meta-agents`) evaluate potential membership based on:
    - Target `meta-agent` attributes (e.g., `rank`, `distance`, requirements)
    - Their own criteria and compatibility rules
    - Existing hierarchies (`meta-agents` can join other `meta-agents` for organizational nesting)
 
 **Membership Application:**
-4. Only `agents` submit join/leave requests to `meta-agents`:
+   Only `agents` submit join/leave requests to `meta-agents`:
    -`Agents` request to join/leave groups with application flow
    - `Meta-agents` are `created` directly as part of parent `meta-agents` (no approval needed)
    - `Meta-agent` creation follows parent meta-agent's structural rules and requirements
+   - **Why no approval?** Creating a child meta-agent is equivalent to an organizational subdivision forming under its parent. The parent decides the shape of its hierarchy ahead of time, so once the child meta-agent is instantiated inside the parent, it is already authorized, and only its members must go through approval.
+
 
 **Policy & Approval:**
-5. Target `meta-agent` evaluates requests from agents using configured policies:
+    Target `meta-agent` evaluates requests from agents using configured policies:
    - Applies role-based rules, capacity limits, and custom logic
    - Accepts or rejects agent applications based on policy configurations
    - Can delegate to leaders/managers for decision-making
    - Note: Meta-agent membership is determined at creation time, not through approval
 
 **Membership Update:**
-6. `Approved` memberships are recorded in the `sparse matrix` (hypergraph structure)
+ `Approved` memberships are recorded in the `sparse matrix` (hypergraph structure)
    - Tracks `agent-to-group` relationships
    - Tracks` meta-agent-to-meta-agent` relationships (organizational hierarchy)
 
 **Reaction Hooks:**
-7. Both entities react to membership changes through `customizable callbacks`:
+Both entities react to membership changes through `customizable callbacks`:
    - `Agent.on_join()` / `Agent.on_leave()`
    - `MetaAgent.on_member_join()` / `MetaAgent.on_member_leave()`
    - These allow side effects and state propagation through hierarchies
 
+**joining** 
+```
+college(policy, hypergraph, join_func, leave_func)
+           |
+           v
+   college.add(agent, wants_to_join)
+           |
+           v
+    wants_to_join(agent?)
+           |
+        [if True]
+           |
+           v
+    assess_join_func(agent)
+           |
+        [if True]
+           |
+           v
+          add()
+```
+**leaving**
+
+      
+      college(..., leave_func)
+            |
+            v
+        college.remove(agent, wants_to_leave)
+            |
+            v
+         wants_to_leave(agent?)
+            |
+         [if True]
+            |
+            v
+         assess_leave_func(agent)
+            |
+         [if True]
+            |
+            v
+          remove()
+      
+
+
+
+
 # facade api :
-get_members(): Returns a list of all members.
-get_members_by_role("some_role"): Returns members with a specific role.
-get_active_members(): Returns all members in the "active" state.
-get_dormant_members(): Returns all members in the "dormant" state.
-get_leaders(): Shortcut to get members with the "leader" role.
+`policy`:
+Defines group rules such as join/leave behavior, authority structure, and exclusivity for setups like hierarchy or coalition.
+
+`get_members()`
+: Returns a list of all members.
+
+`get_members_by_role("some_role")`
+: Returns members with a specific role.
+
+`get_active_members()`
+: Returns all members in the "active" state.
+
+`get_dormant_members()`
+: Returns all members in the "dormant" state.
+
+`get_leaders()`
+: Shortcut to get members with the "leader" role.
 
 # State Control
-activate(entity): Sets a member's state to "active".
-deactivate(entity): Sets a member's state to "dormant".
+`activate(entity)`
+: Sets a member's state to "active".
+
+`deactivate(entity)`
+: Sets a member's state to "dormant".
 
 
-# incidence matrix:
+# incidence matrix/Outputs from my testings:
 ![alt text](image.png)
 
 This is the incidence matrix when every agents want to join the school and gym
