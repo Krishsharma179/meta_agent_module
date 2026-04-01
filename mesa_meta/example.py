@@ -20,8 +20,6 @@ class Agent_std(Agent):
     def wants_to_join(self, meta_agent):
         if "rank" in meta_agent.attributes and meta_agent.attributes["rank"] < 10:
             return True
-        elif "distance" in meta_agent.attributes: # Assuming it's the gym instead
-            return True 
         else:
             return False
     def wants_to_join_gym(self,meta_agent):
@@ -29,6 +27,13 @@ class Agent_std(Agent):
             return True
         else:
             return False
+        
+    def on_join(self,meta_agent):
+        print(f"[on_join] Agent {self.unique_id} IQ before join: {self.iq_level}")
+        self.iq_level += 1
+        print(f"[on_join] Agent {self.unique_id} IQ after join: {self.iq_level}")
+        return self.iq_level
+
 
 
 
@@ -43,6 +48,7 @@ class College(MetaAgent):
             join_approval_func=self.join_approval_func,
             leave_approval_func=self.leave_approval_func,
         )
+        self.strength = 0
     
     def join_approval_func(self, agent):
         """
@@ -59,7 +65,12 @@ class College(MetaAgent):
     def leave_approval_func(self, agent):
         """Always approve leaving"""
         return True
-
+    
+    def on_member_join(self, agent):
+        print(f"[on_member_join] College strength before join: {self.strength}")
+        self.strength += 1
+        print(f"[on_member_join] College strength after join: {self.strength}")
+        return self.strength
 
 class Gym(MetaAgent):
     """MetaAgent for gym with free join/leave."""    

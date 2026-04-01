@@ -114,6 +114,14 @@ class Agent:
     def __init__(self, unique_id):
         self.unique_id = unique_id
     
+    def on_join(self,meta_agent):
+        pass
+
+    def on_leave(self,meat_agent):
+        pass
+
+
+
     def __repr__(self):
         return f"Agent({self.unique_id})"
     
