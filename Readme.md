@@ -24,8 +24,8 @@ This is a starting point for more advanced agent-based modeling and group dynami
 **Lifecycle:**
 
 **Entity Creation:**
-1. Individual agents are instantiated with their own properties.
-2. Meta-agents (groups) are created to represent collections or hierarchical structures.
+1. Individual `agents` are instantiated with their own properties.
+2. `Meta-agents` (groups) are created to represent collections or hierarchical structures.
 
 **Membership Decision:**
 3. Entities (both `agents` and `meta-agents`) evaluate potential membership based on:
