@@ -28,31 +28,31 @@ This is a starting point for more advanced agent-based modeling and group dynami
 2. Meta-agents (groups) are created to represent collections or hierarchical structures.
 
 **Membership Decision:**
-3. Entities (both agents and meta-agents) evaluate potential membership based on:
-   - Target meta-agent attributes (e.g., `rank`, `distance`, requirements)
+3. Entities (both `agents` and `meta-agents`) evaluate potential membership based on:
+   - Target `meta-agent` attributes (e.g., `rank`, `distance`, requirements)
    - Their own criteria and compatibility rules
-   - Existing hierarchies (meta-agents can join other meta-agents for organizational nesting)
+   - Existing hierarchies (`meta-agents` can join other `meta-agents` for organizational nesting)
 
 **Membership Application:**
-4. Only agents submit join/leave requests to meta-agents:
-   - Agents request to join/leave groups with application flow
-   - Meta-agents are created directly as part of parent meta-agents (no approval needed)
-   - Meta-agent creation follows parent meta-agent's structural rules and requirements
+4. Only `agents` submit join/leave requests to `meta-agents`:
+   -`Agents` request to join/leave groups with application flow
+   - `Meta-agents` are `created` directly as part of parent `meta-agents` (no approval needed)
+   - `Meta-agent` creation follows parent meta-agent's structural rules and requirements
 
 **Policy & Approval:**
-5. Target meta-agent evaluates requests from agents using configured policies:
+5. Target `meta-agent` evaluates requests from agents using configured policies:
    - Applies role-based rules, capacity limits, and custom logic
    - Accepts or rejects agent applications based on policy configurations
    - Can delegate to leaders/managers for decision-making
    - Note: Meta-agent membership is determined at creation time, not through approval
 
 **Membership Update:**
-6. Approved memberships are recorded in the sparse matrix (hypergraph structure)
-   - Tracks agent-to-group relationships
-   - Tracks meta-agent-to-meta-agent relationships (organizational hierarchy)
+6. `Approved` memberships are recorded in the `sparse matrix` (hypergraph structure)
+   - Tracks `agent-to-group` relationships
+   - Tracks` meta-agent-to-meta-agent` relationships (organizational hierarchy)
 
 **Reaction Hooks:**
-7. Both entities react to membership changes through customizable callbacks:
+7. Both entities react to membership changes through `customizable callbacks`:
    - `Agent.on_join()` / `Agent.on_leave()`
    - `MetaAgent.on_member_join()` / `MetaAgent.on_member_leave()`
    - These allow side effects and state propagation through hierarchies
