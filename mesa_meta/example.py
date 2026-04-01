@@ -8,7 +8,7 @@ except ImportError:  # Support running as a script from within mesa_meta/
     from meta_agent import MetaAgent
 from mesa import Model, Agent
 from random import randint
-
+from hypergraph import create_meta_agent
 
 class Agent_std(Agent):
     def __init__(self, unique_id, model, iq_level, past_qualification, entrance_marks):

@@ -70,7 +70,8 @@ Note:
 
 
 class Policy:
-    def __init__(self,join_rule:str,leave_rule:str,exclusivity:str,authority:str):
+    def __init__(self, join_rule:str="free", leave_rule:str="free", 
+                 exclusivity:str="multiple", authority:str="none"):
         self.join_rule=join_rule
         self.leave_rule=leave_rule
         self.exclusivity=exclusivity
