@@ -149,6 +149,7 @@ class MetaAgent:
         self.join_approval_func = join_approval_func
         self.leave_approval_func = leave_approval_func
         
+        
         # Eagerly register this meta-agent's column in the hypergraph
         self.hypergraph.register_meta_agent_column(self.meta_agent_id)
         
@@ -178,62 +179,37 @@ class MetaAgent:
                 setattr(self, key, value)
                 self.attributes[key] = value
     
-    @staticmethod
-    def create_meta_agent(policy: Policy, hypergraph, meta_agent_id, agents: Iterable[Agent] = None):
-        """
-        Factory method to create a MetaAgent and optionally populate it with agents.
-        
-        Args:
-            policy: Policy governing join/leave/exclusivity
-            hypergraph: Sparse matrix backend
-            meta_agent_id: Unique identifier for this meta-agent
-            agents: Optional iterable of agents to add on creation
-        
-        Returns:
-            MetaAgent instance with agents added (if provided)
-        """
-        meta = MetaAgent(policy, hypergraph, meta_agent_id)
-        return meta
+    
     
     def on_member_join(self, agent):
-        """Called when an agent successfully joins this meta-agent. Override to customize."""
+        """will be overridden by the user Called when an agent successfully joins this meta-agent. Override to customize."""
         pass
     
     def on_member_leave(self, agent):
-        """Called when an agent successfully leaves this meta-agent. Override to customize."""
+        """Will be overidden by the user Called when an agent successfully leaves this meta-agent. Override to customize."""
         pass    
     
     def assess_join(self, agent: Agent) -> bool:
         """
-        Override this to implement approval logic for join_rule="approval",
+        This is the helper function for add method to assess that join function is True or false,
         or use the function passed in at initialization or in the policy.
         """
-        # First check if function was passed directly to MetaAgent
-        if hasattr(self, 'join_approval_func') and self.join_approval_func is not None:
+        if self.join_approval_func is not None:
             return self.join_approval_func(agent)
-            
-        # Fallback to policy
-        if hasattr(self.policy, 'join_approval_func') and self.policy.join_approval_func is not None:
-            return self.policy.join_approval_func(agent)
-            
-        return True
+        
+        
     
     def assess_leave(self, agent: Agent) -> bool:
         """
-        Override this to implement approval logic for leave_rule="approval",
-        or use the function passed in at initialization or in the policy.
+        This is the helper function of remove method it is to assess if the leave func is True/false
         """
         # First check if function was passed directly to MetaAgent
-        if hasattr(self, 'leave_approval_func') and self.leave_approval_func is not None:
+        if self.leave_approval_func is not None:
             return self.leave_approval_func(agent)
             
-        # Fallback to policy
-        if hasattr(self.policy, 'leave_approval_func') and self.policy.leave_approval_func is not None:
-            return self.policy.leave_approval_func(agent)
-            
-        return True
+        
     
-    def add(self, entity, role: str = "member") -> bool:
+    def add(self, entity, role: str = "member",wants_to_join:callable=None) :
         """
         Attempt to add entity (Agent or MetaAgent) to this group with a specific role.
         
@@ -256,9 +232,9 @@ class MetaAgent:
         is_meta_agent = isinstance(entity, MetaAgent)
         entity_type = "meta-agent" if is_meta_agent else "agent"
         
-        # Gate 0: Check if entity actually wants to join (only for agents)
-        if not is_meta_agent and hasattr(entity, "wants_to_join"):
-            if not entity.wants_to_join(self):
+        # Gate 0: Check if agent wants to join (only for agents)
+        if not is_meta_agent and wants_to_join is not None:
+            if not wants_to_join(self):
                 return False
                 
         # Gate 1: Policy check (join_rule) - approval logic only applies to agents
@@ -294,7 +270,7 @@ class MetaAgent:
 
             
     
-    def remove(self, entity) -> bool:
+    def remove(self, entity,wants_to_leave:callable=None) -> bool:
         """
         Attempt to remove entity (Agent or MetaAgent) from this group.
         
@@ -310,6 +286,10 @@ class MetaAgent:
             True if removed, False if rejected
         """
         is_meta_agent = isinstance(entity, MetaAgent)
+        #Gate 0 :wants to leave
+        if not is_meta_agent and wants_to_leave is not None:
+            if not wants_to_leave(self):
+                return False 
         
         # Gate 1: Policy check (leave_rule)
         if self.policy.leave_rule == "approval":

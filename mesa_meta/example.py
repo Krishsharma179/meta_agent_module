@@ -8,7 +8,6 @@ except ImportError:  # Support running as a script from within mesa_meta/
     from meta_agent import MetaAgent
 from mesa import Model, Agent
 from random import randint
-from hypergraph import create_meta_agent
 
 class Agent_std(Agent):
     def __init__(self, unique_id, model, iq_level, past_qualification, entrance_marks):
@@ -32,34 +31,38 @@ class Agent_std(Agent):
             return False
 
 
-def join_approval(agent):
-    return (agent.iq_level >= 120 and 
-                agent.past_qualification == "graduate" and 
-                agent.entrance_marks >= 120)
-
-def leave_approval(agent):
-    return True
-
 
 class College(MetaAgent):
     """MetaAgent for college with approval functions."""
+
+    def __init__(self, policy, hypergraph, meta_agent_id):
+        super().__init__(
+            policy,
+            hypergraph,
+            meta_agent_id,
+            join_approval_func=self.join_approval_func,
+            leave_approval_func=self.leave_approval_func,
+        )
     
-    def assess_join(self, agent):
+    def join_approval_func(self, agent):
         """
         Approve if:
         - student's iq_level >= 120
         - past_qualification == "graduate"
         - entrance_marks >= 120
         """
-        return join_approval(agent)
-    
-    def assess_leave(self,agent):
+        if  (agent.iq_level >= 120 and 
+                agent.past_qualification == "graduate" and 
+                agent.entrance_marks >= 120):
+                return True 
+
+    def leave_approval_func(self, agent):
         """Always approve leaving"""
-        return leave_approval(agent)
+        return True
 
 
 class Gym(MetaAgent):
-    """MetaAgent for gym with free join/leave."""
+    """MetaAgent for gym with free join/leave."""    
     pass
 
 
@@ -83,13 +86,13 @@ class Model_institute(Model):
             exclusivity="multiple"
         )
 
-        college = MetaAgent(policy, self.hypergraph, meta_agent_id=0, join_approval_func=join_approval, leave_approval_func=leave_approval)
+        college = College(policy, self.hypergraph, meta_agent_id=0)
         
         attribute = {"rank": 3}
         college.add_attribute(attribute)
         
         for agent in self.agen:
-            college.add(agent,role="students")
+            college.add(agent,role="students",wants_to_join=agent.wants_to_join)
         
         # Create Gym meta-agent with free join/leave
         gym_policy = Policy(
@@ -104,7 +107,7 @@ class Model_institute(Model):
         
         # Add agents to gym (all can join freely)
         for agent in self.agen:
-            gym.add(agent,role="trainer")
+            gym.add(agent,role="trainer",wants_to_join=agent.wants_to_join_gym)
 
         # === ADD HIERARCHY: Teachers Meta-Agent ===
         teachers_policy = Policy("free", "free", "multiple", "none")
