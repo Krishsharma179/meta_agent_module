@@ -14,7 +14,7 @@ This repository is a prototype for a GSoC project exploring meta-agents and grou
 
 
 ## Current Goal 
-(This will change according to the feature I am currently working)
+
 
 **Nested Meta-Agent Policies & Hierarchical Join Pipeline**
 
