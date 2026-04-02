@@ -18,7 +18,7 @@ This repository is a prototype for a GSoC project exploring meta-agents and grou
 
 **Nested Meta-Agent Policies & Hierarchical Join Pipeline**
 
-Implementing multi-level criteria validation for nested meta-agents (e.g., Gym Club inside College). Key focuses:
+Implementing multi-level criteria validation for nested meta-agents (e.g., Gym Club inside College). Key focuses include:
 
 - **Define nested meta-agent policies**: Child meta-agents have their own attributes and criteria (strength, height, weight, etc.)
 - **Hierarchical validation pipeline**: Agents must satisfy criteria at both parent and nested levels
@@ -27,7 +27,7 @@ Implementing multi-level criteria validation for nested meta-agents (e.g., Gym C
 
 
 
-**Code structure:**
+**Code Structure:**
 - `Agent`: Represents an individual entity.
 - `MetaAgent`: Represents a group; manages membership and rules.
 - `Policy`: Configures join/leave/exclusivity logic.
@@ -46,30 +46,30 @@ This is a starting point for more advanced agent-based modeling and group dynami
 2. `Meta-agents` (groups) are created to represent collections or hierarchical structures.
 
 **Membership Decision:**
- Entities (both `agents` and `meta-agents`) evaluate potential membership based on:
+Entities (both `agents` and `meta-agents`) evaluate potential membership based on:
    - Target `meta-agent` attributes (e.g., `rank`, `distance`, requirements)
    - Their own criteria and compatibility rules
    - Existing hierarchies (`meta-agents` can join other `meta-agents` for organizational nesting)
 
 **Membership Application:**
-   Only `agents` submit join/leave requests to `meta-agents`:
-   -`Agents` request to join/leave groups with application flow
-   - `Meta-agents` are `created` directly as part of parent `meta-agents` (no approval needed)
-   - `Meta-agent` creation follows its own rules/policy, and agents need to satisfy both parent and child rules to join.
-   - **Why no approval?** Creating a child meta-agent is equivalent to an organizational subdivision forming under its parent. The parent decides the shape of its hierarchy ahead of time, so once the child meta-agent is instantiated inside the parent, it is already authorized, and only its members must go through approval.
+Only `agents` submit join/leave requests to `meta-agents`:
+- `Agents` request to join/leave groups through the application flow.
+- `Meta-agents` are `created` directly as part of parent `meta-agents` (no approval needed).
+- `Meta-agent` creation follows its own rules/policy, and agents need to satisfy both parent and child rules to join.
+- **Why no approval?** Creating a child meta-agent is equivalent to an organizational subdivision forming under its parent. The parent decides the shape of its hierarchy ahead of time, so once the child meta-agent is instantiated inside the parent, it is already authorized, and only its members must go through approval.
 
 
 **Policy & Approval:**
-    Target `meta-agent` evaluates requests from agents using configured policies:
+Target `meta-agent` evaluates requests from agents using configured policies:
    - Applies role-based rules, capacity limits, and custom logic
    - Accepts or rejects agent applications based on policy configurations
    - Can delegate to leaders/managers for decision-making
    - Note: Meta-agent membership is determined at creation time, not through approval
 
 **Membership Update:**
- `Approved` memberships are recorded in the `sparse matrix` (hypergraph structure)
+`Approved` memberships are recorded in the `sparse matrix` (hypergraph structure).
    - Tracks `agent-to-group` relationships
-   - Tracks` meta-agent-to-meta-agent` relationships (organizational hierarchy)
+   - Tracks `meta-agent-to-meta-agent` relationships (organizational hierarchy)
 
 **Reaction Hooks:**
 Both entities react to membership changes through `customizable callbacks`:
@@ -77,7 +77,7 @@ Both entities react to membership changes through `customizable callbacks`:
    - `MetaAgent.on_member_join()` / `MetaAgent.on_member_leave()`
    - These allow side effects and state propagation through hierarchies
 
-**joining** 
+**Joining**
 ```
 college(policy, hypergraph, join_func, leave_func)
            |
@@ -97,7 +97,7 @@ college(policy, hypergraph, join_func, leave_func)
            v
           add()
 ```
-**leaving**
+**Leaving**
 
       
       college(..., leave_func)
@@ -122,7 +122,7 @@ college(policy, hypergraph, join_func, leave_func)
 
 
 
-# facade api :
+# Facade API:
 `policy`:
 Defines group rules such as join/leave behavior, authority structure, and exclusivity for setups like hierarchy or coalition.
 
@@ -149,19 +149,19 @@ Defines group rules such as join/leave behavior, authority structure, and exclus
 : Sets a member's state to "dormant".
 
 
-# incidence matrix/Outputs from my testings:
+# Incidence Matrix/Outputs from Testing:
 ![alt text](image.png)
 
-This is the incidence matrix when every agents want to join the school and gym
-and cleared the criteria 
+This is the incidence matrix when every agent wants to join the school and gym
+and clears the criteria.
 
 ![alt text](image-1.png)
 
-This is the incidence martix when the agent didnt wanted to join the school but wanted to join the gym
+This is the incidence matrix when the agent did not want to join the school but wanted to join the gym.
 
 ![alt text](image-3.png)
 This is the incidence matrix where 
-meta agent teacher is a part of school
+meta-agent teacher is a part of school.
 
 ```
     columns | College| Gym |Teachers
@@ -173,7 +173,7 @@ meta-agent  |        |     |
 
 ```
 
-Before I was thinking to apply rules in the joining of meta_agent too then I thought In real life org under org exists because of the willness of the org 
+Earlier, I was thinking of applying rules to meta-agent joining as well, but then I realized that in real life, an organization under another organization exists because of the willingness of the organization.
 
 
 
