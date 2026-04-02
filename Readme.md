@@ -2,6 +2,7 @@
 
 This repository is a prototype for a GSoC project exploring meta-agents and group membership in agent-based models.
 
+
 **What it does:**
 - Models agents and groups (meta-agents) with flexible join/leave rules.
 - Uses a sparse matrix to efficiently track which agents belong to which groups.
@@ -9,6 +10,22 @@ This repository is a prototype for a GSoC project exploring meta-agents and grou
 
 **How to run:**
 - From the repo root: `python -m mesa_meta.example`
+
+
+
+## Current Goal 
+(This will change according to the feature I am currently working)
+
+**Nested Meta-Agent Policies & Hierarchical Join Pipeline**
+
+Implementing multi-level criteria validation for nested meta-agents (e.g., Gym Club inside College). Key focuses:
+
+- **Define nested meta-agent policies**: Child meta-agents have their own attributes and criteria (strength, height, weight, etc.)
+- **Hierarchical validation pipeline**: Agents must satisfy criteria at both parent and nested levels
+- **Join flow**: Agent checks parent criteria → checks nested criteria → joins both levels if approved
+- **Enable realistic hierarchies**: Sub-groups maintain independent membership standards within parent organizations
+
+
 
 **Code structure:**
 - `Agent`: Represents an individual entity.
@@ -38,7 +55,7 @@ This is a starting point for more advanced agent-based modeling and group dynami
    Only `agents` submit join/leave requests to `meta-agents`:
    -`Agents` request to join/leave groups with application flow
    - `Meta-agents` are `created` directly as part of parent `meta-agents` (no approval needed)
-   - `Meta-agent` creation follows parent meta-agent's structural rules and requirements
+   - `Meta-agent` creation follows its own rules/policy, and agents need to satisfy both parent and child rules to join.
    - **Why no approval?** Creating a child meta-agent is equivalent to an organizational subdivision forming under its parent. The parent decides the shape of its hierarchy ahead of time, so once the child meta-agent is instantiated inside the parent, it is already authorized, and only its members must go through approval.
 
 
@@ -144,7 +161,17 @@ This is the incidence martix when the agent didnt wanted to join the school but 
 
 ![alt text](image-3.png)
 This is the incidence matrix where 
-meta agent teacher is a part of school 
+meta agent teacher is a part of school
+
+```
+    columns | College| Gym |Teachers
+rows        |        |     |
+agent1      |        |     |
+agent2      |        |     |
+agent3      |        |     |
+meta-agent  |        |     | 
+
+```
 
 Before I was thinking to apply rules in the joining of meta_agent too then I thought In real life org under org exists because of the willness of the org 
 
