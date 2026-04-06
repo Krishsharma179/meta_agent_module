@@ -125,10 +125,6 @@ class Agent:
     def __repr__(self):
         return f"Agent({self.unique_id})"
     
-    def __eq__(self, other):
-        if isinstance(other, Agent):
-            return self.unique_id == other.unique_id
-        return False
     
     def __hash__(self):
         return hash(self.unique_id)
